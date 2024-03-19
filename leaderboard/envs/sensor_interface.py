@@ -223,6 +223,12 @@ class SensorInterface(object):
         """Read the queue to get the sensors data"""
         try:
             data_dict = {}
+            if len(self._sensors_objects.keys()) == 1:
+                if self._data_buffers.qsize() > 0:
+                    sensor_data = self._data_buffers.get()
+                    data_dict[sensor_data[0]] = ((sensor_data[1], sensor_data[2]))
+                    print("Q now empty?", self._data_buffers.qsize())
+                return data_dict
             while len(data_dict.keys()) < len(self._sensors_objects.keys()):
                 # Don't wait for the opendrive sensor
                 if self._opendrive_tag and self._opendrive_tag not in data_dict.keys() \
