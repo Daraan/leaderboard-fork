@@ -237,53 +237,64 @@ class StatisticsManager(object):
                 all_events.extend(node.events)
 
         all_events.sort(key=lambda e: e.get_frame(), reverse=True)
-
-        with open(self._debug_endpoint, 'w') as f:
-            f.write("Route id: {}\n\n"
-                    "Scores:\n"
-                    "    Driving score:      {:.3f}\n"
-                    "    Route completion:   {:.3f}\n"
-                    "    Infraction penalty: {:.3f}\n\n"
-                    "    Route length:    {:.3f}\n"
-                    "    Game duration:   {:.3f}\n"
-                    "    System duration: {:.3f}\n\n"
-                    "Ego:\n"
-                    "    Throttle:           {:.3f}\n"
-                    "    Brake:              {:.3f}\n"
-                    "    Steer:              {:.3f}\n\n"
-                    "    Speed:           {:.3f} km/h\n\n"
-                    "    Location:           ({:.3f} {:.3f} {:.3f})\n\n"
-                    "Total infractions: {}\n"
-                    "Last 5 infractions:\n".format(
-                        route_record.route_id,
-                        route_record.scores["score_composed"],
-                        route_record.scores["score_route"],
-                        route_record.scores["score_penalty"],
-                        route_record.meta["route_length"],
-                        route_record.meta["duration_game"],
-                        route_record.meta["duration_system"],
-                        ego_control.throttle,
-                        ego_control.brake,
-                        ego_control.steer,
-                        ego_speed * 3.6,
-                        ego_location.x,
-                        ego_location.y,
-                        ego_location.z,
-                        route_record.num_infractions
-                    )
-                )
+        msg1 = ("Route id: {}\n\n"
+                "Scores:\n"
+                "    Driving score:      {:.3f}\n"
+                "    Route completion:   {:.3f}\n"
+                "    Infraction penalty: {:.3f}\n\n"
+                "    Route length:    {:.3f}\n"
+                "    Game duration:   {:.3f}\n"
+                "    System duration: {:.3f}\n\n"
+                "Ego:\n"
+                "    Throttle:           {:.3f}\n"
+                "    Brake:              {:.3f}\n"
+                "    Steer:              {:.3f}\n\n"
+                "    Speed:           {:.3f} km/h\n\n"
+                "    Location:           ({:.3f} {:.3f} {:.3f})\n\n"
+                "Total infractions: {}\n"
+                "Last 5 infractions:\n".format(
+                    route_record.route_id,
+                    route_record.scores["score_composed"],
+                    route_record.scores["score_route"],
+                    route_record.scores["score_penalty"],
+                    route_record.meta["route_length"],
+                    route_record.meta["duration_game"],
+                    route_record.meta["duration_system"],
+                    ego_control.throttle,
+                    ego_control.brake,
+                    ego_control.steer,
+                    ego_speed * 3.6,
+                    ego_location.x,
+                    ego_location.y,
+                    ego_location.z,
+                    route_record.num_infractions
+                ))
+        
+        def get_event_string(e):
+            event_type = e.get_type()
+            if event_type == TrafficEventType.ROUTE_COMPLETION:
+                return TrafficEventType.ROUTE_COMPLETION
+            string = "    " + str(e.get_type()).replace("TrafficEventType.", "")
+            if event_type in PENALTY_VALUE_DICT:
+                string += " (penalty: " + str(PENALTY_VALUE_DICT[event_type]) + ")\n"
+            elif event_type in PENALTY_PERC_DICT:
+                string += " (value: " + str(round(e.get_dict()['percentage'], 3)) + "%)\n"
+            return string
+        # TODO could pass a function f.write, print to this function
+        
+        if self._debug_endpoint:
+            with open(self._debug_endpoint, 'w') as f:
+                f.write(msg1)
+                for e in all_events[:5]:
+                    string = get_event_string(e)
+                    if string != TrafficEventType.ROUTE_COMPLETION:
+                        f.write(string)
+        else:
+            print(msg1)
             for e in all_events[:5]:
-                # Prevent showing the ROUTE_COMPLETION event.
-                event_type = e.get_type()
-                if event_type == TrafficEventType.ROUTE_COMPLETION:
-                    continue
-                string = "    " + str(e.get_type()).replace("TrafficEventType.", "")
-                if event_type in PENALTY_VALUE_DICT:
-                    string += " (penalty: " + str(PENALTY_VALUE_DICT[event_type]) + ")\n"
-                elif event_type in PENALTY_PERC_DICT:
-                    string += " (value: " + str(round(e.get_dict()['percentage'], 3)) + "%)\n"
-
-                f.write(string)
+                string = get_event_string(e)
+                if string != TrafficEventType.ROUTE_COMPLETION:
+                    print(string)
 
     def save_sensors(self, sensors):
         self._results.sensors = sensors
