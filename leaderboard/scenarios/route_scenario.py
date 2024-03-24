@@ -114,7 +114,7 @@ class RouteScenario(BasicScenario):
         Parameters:
         - world: CARLA world
         - config: Scenario configuration (RouteConfiguration)
-        - debug_mode: boolean to decide whether or not the route poitns are printed
+        - debug_mode: boolean to decide whether or not the route points are printed
         """
 
         # Prepare route's trajectory (interpolate and add the GPS route)
